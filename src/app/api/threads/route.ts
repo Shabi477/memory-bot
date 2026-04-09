@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
 import { auth } from '@/auth';
+import { checkLimit } from '@/lib/freemium';
 
 // Demo mode for testing without real auth
 const DEMO_MODE = process.env.DEMO_MODE === 'true';
@@ -129,6 +130,15 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
       }
       userId = session.user.id;
+    }
+    
+    // Check freemium limits
+    const limitCheck = await checkLimit(userId, 'thread');
+    if (!limitCheck.allowed) {
+      return NextResponse.json(
+        { error: limitCheck.message, limitReached: true },
+        { status: 403 }
+      );
     }
     
     const threads = await sql`

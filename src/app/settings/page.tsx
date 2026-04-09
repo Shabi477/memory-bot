@@ -1,13 +1,30 @@
 'use client';
 
 import { useSession, signOut } from 'next-auth/react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+
+interface UsageStats {
+  tier: 'free' | 'pro';
+  projects: { used: number; limit: number };
+  threads: { used: number; limit: number };
+  moments: { used: number; limit: number };
+}
 
 export default function SettingsPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [copied, setCopied] = useState(false);
+  const [usage, setUsage] = useState<UsageStats | null>(null);
+
+  useEffect(() => {
+    if (status === 'authenticated') {
+      fetch('/api/usage')
+        .then((res) => res.json())
+        .then(setUsage)
+        .catch(() => {});
+    }
+  }, [status]);
 
   // The user's ID is their token for the Chrome extension
   const token = session?.user?.id;
@@ -96,6 +113,67 @@ export default function SettingsPage() {
         )}
       </div>
 
+      {/* Usage & Plan Section */}
+      <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
+        <div className="flex justify-between items-start mb-4">
+          <div>
+            <h2 className="text-lg font-semibold">Your Plan</h2>
+            <p className="text-sm text-gray-600">
+              {usage?.tier === 'pro' ? (
+                <span className="inline-flex items-center gap-1">
+                  <span className="bg-purple-600 text-white text-xs px-2 py-0.5 rounded-full">PRO</span>
+                  Unlimited access
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1">
+                  <span className="bg-gray-200 text-gray-700 text-xs px-2 py-0.5 rounded-full">FREE</span>
+                  Limited features
+                </span>
+              )}
+            </p>
+          </div>
+          {usage?.tier === 'free' && (
+            <button className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-4 py-2 rounded-md hover:from-purple-700 hover:to-indigo-700 text-sm font-medium">
+              Upgrade to Pro — $9/mo
+            </button>
+          )}
+        </div>
+
+        {usage && (
+          <div className="space-y-3">
+            <UsageBar
+              label="Threads"
+              used={usage.threads.used}
+              limit={usage.threads.limit}
+            />
+            <UsageBar
+              label="Moments"
+              used={usage.moments.used}
+              limit={usage.moments.limit}
+            />
+            <UsageBar
+              label="Projects"
+              used={usage.projects.used}
+              limit={usage.projects.limit}
+            />
+          </div>
+        )}
+
+        {usage?.tier === 'free' && (
+          <div className="mt-4 pt-4 border-t border-gray-100">
+            <p className="text-sm text-gray-600 mb-2">
+              <strong>Pro includes:</strong>
+            </p>
+            <ul className="text-sm text-gray-500 space-y-1">
+              <li>✓ Unlimited threads, moments & projects</li>
+              <li>✓ AI-generated summaries</li>
+              <li>✓ Context pack generation</li>
+              <li>✓ Priority support</li>
+            </ul>
+          </div>
+        )}
+      </div>
+
       {/* Extension Install Instructions */}
       <div className="bg-white border border-gray-200 rounded-lg p-6">
         <h2 className="text-lg font-semibold mb-2">Install Extension</h2>
@@ -105,8 +183,37 @@ export default function SettingsPage() {
           <li>Click &quot;Load unpacked&quot;</li>
           <li>Select the <code className="bg-gray-100 px-1 rounded">chrome-extension</code> folder from this project</li>
           <li>Click the extension icon and paste your auth token</li>
-          <li>Select text on any AI chat and right-click → &quot;Save to Memory Bot&quot;</li>
+          <li>Go to ChatGPT or Claude — you&apos;ll see &quot;🧠 Save&quot; buttons on messages!</li>
         </ol>
+      </div>
+    </div>
+  );
+}
+
+function UsageBar({ label, used, limit }: { label: string; used: number; limit: number }) {
+  const percentage = limit === Infinity ? 0 : Math.min((used / limit) * 100, 100);
+  const isNearLimit = percentage >= 80;
+  const isAtLimit = percentage >= 100;
+
+  return (
+    <div>
+      <div className="flex justify-between text-sm mb-1">
+        <span className="text-gray-600">{label}</span>
+        <span className={isAtLimit ? 'text-red-600 font-medium' : 'text-gray-500'}>
+          {used} / {limit === Infinity ? '∞' : limit}
+        </span>
+      </div>
+      <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+        <div
+          className={`h-full rounded-full transition-all ${
+            isAtLimit
+              ? 'bg-red-500'
+              : isNearLimit
+              ? 'bg-yellow-500'
+              : 'bg-purple-500'
+          }`}
+          style={{ width: limit === Infinity ? '100%' : `${percentage}%` }}
+        />
       </div>
     </div>
   );

@@ -21,7 +21,10 @@ export function Nav() {
         <div className="flex justify-between h-14">
           <div className="flex items-center space-x-4">
             <Link href="/" className="font-bold text-lg flex items-center gap-2">
-              <span>🤖</span> Memory Bot
+              <span>�</span> ThreadMind
+            </Link>
+            <Link href="/inbox" className={linkClass('/inbox')}>
+              📥 Inbox
             </Link>
             <Link href="/threads" className={linkClass('/threads')}>
               Threads

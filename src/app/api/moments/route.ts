@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
 import { auth } from '@/auth';
+import { checkLimit } from '@/lib/freemium';
 
 const DEMO_MODE = process.env.DEMO_MODE === 'true';
 const DEMO_TOKEN = 'demo_token_for_local_testing_only';
@@ -37,9 +38,10 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { threadId, source, sourceUrl, title, rawText } = body;
     
-    if (!threadId || !source || !rawText) {
+    // threadId is now optional - if not provided, goes to inbox
+    if (!source || !rawText) {
       return NextResponse.json(
-        { error: 'Missing required fields: threadId, source, rawText' },
+        { error: 'Missing required fields: source, rawText' },
         { status: 400 }
       );
     }
@@ -78,16 +80,27 @@ export async function POST(request: NextRequest) {
       userId = session.user.id;
     }
     
+    // Check freemium limits
+    const limitCheck = await checkLimit(userId, 'moment');
+    if (!limitCheck.allowed) {
+      return NextResponse.json(
+        { error: limitCheck.message, limitReached: true },
+        { status: 403 }
+      );
+    }
+    
     const moments = await sql`
       INSERT INTO moments (thread_id, user_id, source, source_url, title, raw_text)
-      VALUES (${threadId}, ${userId}, ${source}, ${sourceUrl || null}, ${title || null}, ${rawText})
+      VALUES (${threadId || null}, ${userId}, ${source}, ${sourceUrl || null}, ${title || null}, ${rawText})
       RETURNING id, thread_id, source, source_url, title, raw_text, created_at
     `;
     
-    // Update thread's updated_at timestamp
-    await sql`
-      UPDATE threads SET updated_at = NOW() WHERE id = ${threadId}
-    `;
+    // Update thread's updated_at timestamp (only if threadId provided)
+    if (threadId) {
+      await sql`
+        UPDATE threads SET updated_at = NOW() WHERE id = ${threadId}
+      `;
+    }
     
     return NextResponse.json({ moment: moments[0] }, { status: 201 });
   } catch (error) {

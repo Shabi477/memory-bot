@@ -1,19 +1,35 @@
 {
   "manifest_version": 3,
-  "name": "AI Chat Organiser",
-  "version": "1.0.0",
-  "description": "Save important moments from any AI chat to your personal organiser",
+  "name": "ThreadMind - AI Memory Bot",
+  "version": "1.1.0",
+  "description": "Your personal memory layer for AI work. Save, organise, and resume AI conversations with full context.",
   "permissions": [
     "contextMenus",
     "storage",
     "activeTab"
   ],
   "host_permissions": [
-    "http://localhost:3000/*"
+    "https://memory-bot-omega.vercel.app/*",
+    "http://localhost:3000/*",
+    "https://chat.openai.com/*",
+    "https://chatgpt.com/*",
+    "https://claude.ai/*"
   ],
   "background": {
     "service_worker": "background.js"
   },
+  "content_scripts": [
+    {
+      "matches": ["https://chat.openai.com/*", "https://chatgpt.com/*"],
+      "js": ["content-chatgpt.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://claude.ai/*"],
+      "js": ["content-claude.js"],
+      "run_at": "document_idle"
+    }
+  ],
   "action": {
     "default_popup": "popup.html",
     "default_icon": {
@@ -33,7 +49,7 @@
         "default": "Ctrl+Shift+S",
         "mac": "Command+Shift+S"
       },
-      "description": "Save selected text to AI Organiser"
+      "description": "Save selected text to ThreadMind"
     }
   }
 }

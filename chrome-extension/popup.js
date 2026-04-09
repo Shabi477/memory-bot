@@ -1,6 +1,6 @@
-// Popup script for AI Chat Organiser extension
+// Popup script for ThreadMind extension
 
-const API_BASE = 'http://localhost:3000';
+const API_BASE = 'https://memory-bot-omega.vercel.app';
 
 // State
 let threads = [];
@@ -11,9 +11,9 @@ let authToken = null;
 document.addEventListener('DOMContentLoaded', init);
 
 async function init() {
-  // Load auth token from storage
-  const stored = await chrome.storage.local.get(['authToken']);
-  authToken = stored.authToken;
+  // Load auth token from storage (sync for cross-script access)
+  const stored = await chrome.storage.sync.get(['threadmind_token']);
+  authToken = stored.threadmind_token;
   
   // Check for pending save from context menu
   chrome.runtime.sendMessage({ action: 'getPendingSave' }, (response) => {
@@ -52,24 +52,47 @@ async function render() {
     return;
   }
   
-  // No selection - show instructions
+  // No selection - show thread selector and instructions
+  await loadThreads();
+  const stored = await chrome.storage.sync.get(['threadmind_selected_thread']);
+  const selectedThread = stored.threadmind_selected_thread;
+  
+  const threadOptions = threads.map(t => 
+    `<option value="${t.id}" ${t.id === selectedThread ? 'selected' : ''}>${t.title}</option>`
+  ).join('');
+  
   content.innerHTML = `
     <div class="bot-message">
-      <div class="bot-name">Memory Bot</div>
-      <p>I'm ready to save! 🧠 Just select some text in your AI chat, then right-click and choose <strong>"Save to Memory Bot"</strong></p>
+      <div class="bot-name">ThreadMind</div>
+      <p>I'm ready! 🧠 Click the <strong>"Save"</strong> button on any AI message, or highlight text to save just part of it.</p>
     </div>
     <div class="content-card">
-      <div class="empty-state">
-        <p style="font-size: 32px; margin-bottom: 12px;">💡</p>
-        <p><strong>Quick tip:</strong></p>
-        <p style="font-size: 12px; color: #888; margin-top: 8px;">
-          You can also press<br>
-          <kbd style="background:#f0f4ff;padding:4px 8px;border-radius:4px;font-size:11px;border:1px solid #667eea;">Ctrl+Shift+S</kbd>
-        </p>
+      <div class="form-group">
+        <label for="defaultThread">📂 Default thread for quick saves:</label>
+        <select id="defaultThread">
+          <option value="">Select a thread...</option>
+          ${threadOptions}
+        </select>
       </div>
-      <button class="btn btn-secondary" id="disconnectBtn">🔌 Disconnect</button>
+      <p style="font-size: 11px; color: #888; margin: 12px 0;">
+        💡 Go to ChatGPT or Claude — you'll see a <strong>"🧠 Save"</strong> button on every message!
+      </p>
+      <div class="button-group">
+        <a href="${API_BASE}/threads" target="_blank" class="btn btn-primary">📋 View Threads</a>
+        <button class="btn btn-secondary" id="disconnectBtn">🔌 Disconnect</button>
+      </div>
     </div>
   `;
+  
+  document.getElementById('defaultThread').addEventListener('change', async (e) => {
+    await chrome.storage.sync.set({ threadmind_selected_thread: e.target.value });
+    // Show confirmation
+    const label = document.querySelector('label[for="defaultThread"]');
+    label.textContent = '📂 ✓ Thread selected!';
+    setTimeout(() => {
+      label.textContent = '📂 Default thread for quick saves:';
+    }, 1500);
+  });
   
   document.getElementById('disconnectBtn').addEventListener('click', disconnectAccount);
 }
@@ -86,7 +109,7 @@ async function loadThreads() {
       if (response.status === 401) {
         // Token expired
         authToken = null;
-        await chrome.storage.local.remove(['authToken']);
+        await chrome.storage.sync.remove(['threadmind_token']);
         render();
         return;
       }
@@ -274,12 +297,15 @@ function cancelSave() {
 
 async function connectAccount() {
   // Prompt user to paste their token
-  // In a real app, you'd use OAuth - this is simplified for MVP
-  const token = prompt('🤖 Memory Bot here! Paste your secret token from the Settings page:');
+  const token = prompt('🧠 ThreadMind here! Paste your User ID from the Settings page:');
   
   if (token && token.trim()) {
     authToken = token.trim();
-    await chrome.storage.local.set({ authToken });
+    // Save to sync storage so content scripts can access it
+    await chrome.storage.sync.set({ 
+      threadmind_token: authToken,
+      threadmind_api_url: API_BASE
+    });
     
     // Verify token works
     try {
@@ -293,19 +319,19 @@ async function connectAccount() {
       
       render();
     } catch (error) {
-      alert('🤖 Hmm, that token didn\'t work! Make sure you copied the whole thing from Settings.');
+      alert('� Hmm, that token didn\'t work! Make sure you copied your User ID from Settings.');
       authToken = null;
-      await chrome.storage.local.remove(['authToken']);
+      await chrome.storage.sync.remove(['threadmind_token']);
     }
   }
 }
 
 async function disconnectAccount() {
-  if (!confirm('🤖 Are you sure? I\'ll forget who you are... 😢')) {
+  if (!confirm('� Are you sure? I\'ll forget who you are... 😢')) {
     return;
   }
   authToken = null;
-  await chrome.storage.local.remove(['authToken']);
+  await chrome.storage.sync.remove(['threadmind_token', 'threadmind_selected_thread']);
   render();
 }
 
