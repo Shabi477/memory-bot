@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
 import { auth } from '@/auth';
 import { checkLimit } from '@/lib/freemium';
+import { generateMomentSummary } from '@/lib/ai';
 
 const DEMO_MODE = process.env.DEMO_MODE === 'true';
 const DEMO_TOKEN = 'demo_token_for_local_testing_only';
@@ -22,8 +23,8 @@ async function getUserFromToken(token: string) {
   }
 }
 
-// Simple summary generator
-function generateSummary(text: string): string {
+// Simple summary generator (fallback)
+function generateFallbackSummary(text: string): string {
   const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 10);
   if (sentences.length >= 2) {
     return sentences.slice(0, 2).join('. ').trim() + '.';
@@ -36,7 +37,7 @@ export async function POST(request: NextRequest) {
   try {
     const authHeader = request.headers.get('Authorization');
     const body = await request.json();
-    const { threadId, source, sourceUrl, title, rawText } = body;
+    const { threadId, source, sourceUrl, title, rawText, generateAiSummary } = body;
     
     // threadId is now optional - if not provided, goes to inbox
     if (!source || !rawText) {
@@ -59,7 +60,7 @@ export async function POST(request: NextRequest) {
             thread_id: threadId,
             source,
             source_url: sourceUrl,
-            title: title || generateSummary(rawText).slice(0, 50),
+            title: title || generateFallbackSummary(rawText).slice(0, 50),
             raw_text: rawText,
             created_at: new Date().toISOString(),
           }
@@ -89,10 +90,37 @@ export async function POST(request: NextRequest) {
       );
     }
     
+    // Generate AI summary if requested (and API key available)
+    let summary = null;
+    let keyPoints = null;
+    let momentType = null;
+    
+    if (generateAiSummary && process.env.ANTHROPIC_API_KEY) {
+      try {
+        const aiResult = await generateMomentSummary(rawText, source);
+        summary = aiResult.summary;
+        keyPoints = aiResult.keyPoints;
+        momentType = aiResult.momentType;
+      } catch (error) {
+        console.error('AI summary generation failed:', error);
+        // Don't fail the whole request, just skip summary
+      }
+    }
+    
     const moments = await sql`
-      INSERT INTO moments (thread_id, user_id, source, source_url, title, raw_text)
-      VALUES (${threadId || null}, ${userId}, ${source}, ${sourceUrl || null}, ${title || null}, ${rawText})
-      RETURNING id, thread_id, source, source_url, title, raw_text, created_at
+      INSERT INTO moments (thread_id, user_id, source, source_url, title, raw_text, summary, key_points, moment_type)
+      VALUES (
+        ${threadId || null}, 
+        ${userId}, 
+        ${source}, 
+        ${sourceUrl || null}, 
+        ${title || null}, 
+        ${rawText},
+        ${summary},
+        ${keyPoints ? JSON.stringify(keyPoints) : null},
+        ${momentType}
+      )
+      RETURNING id, thread_id, source, source_url, title, raw_text, summary, key_points, moment_type, created_at
     `;
     
     // Update thread's updated_at timestamp (only if threadId provided)

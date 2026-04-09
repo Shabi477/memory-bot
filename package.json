@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.86.1",
     "@neondatabase/serverless": "^1.0.2",
     "@supabase/supabase-js": "^2.39.0",
     "bcryptjs": "^3.0.3",

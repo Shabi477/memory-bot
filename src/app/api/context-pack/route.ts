@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
 import { auth } from '@/auth';
+import { generateAIContextPack } from '@/lib/ai';
 
 // POST /api/context-pack - Generate a context pack
 export async function POST(request: NextRequest) {
@@ -11,7 +12,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { threadId, projectId, verbosity = 'standard' } = body;
+    const { threadId, projectId, verbosity = 'standard', useAI = false } = body;
 
     if (!threadId && !projectId) {
       return NextResponse.json(
@@ -45,7 +46,23 @@ export async function POST(request: NextRequest) {
         ORDER BY created_at ASC
       `;
 
-      contextPack = generateThreadContextPack(thread, moments, verbosity);
+      // Use AI-powered generation if requested and available
+      if (useAI && process.env.ANTHROPIC_API_KEY) {
+        try {
+          const aiResult = await generateAIContextPack(
+            thread.title,
+            thread.description,
+            moments,
+            verbosity
+          );
+          contextPack = aiResult.contextPack;
+        } catch (error) {
+          console.error('AI context pack generation failed, using fallback:', error);
+          contextPack = generateThreadContextPack(thread, moments, verbosity);
+        }
+      } else {
+        contextPack = generateThreadContextPack(thread, moments, verbosity);
+      }
     } else {
       // Generate context pack for a project (multiple threads)
       const projects = await sql`

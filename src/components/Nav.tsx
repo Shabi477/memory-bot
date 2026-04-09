@@ -29,6 +29,12 @@ export function Nav() {
             <Link href="/threads" className={linkClass('/threads')}>
               Threads
             </Link>
+            <Link href="/projects" className={linkClass('/projects')}>
+              📁 Projects
+            </Link>
+            <Link href="/artifacts" className={linkClass('/artifacts')}>
+              🧩 Artifacts
+            </Link>
             <Link href="/search" className={linkClass('/search')}>
               Search
             </Link>
