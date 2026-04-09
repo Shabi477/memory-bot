@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Chat Organiser</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      width: 360px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 14px;
+      color: #333;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 400px;
+    }
+    
+    .container {
+      padding: 16px;
+    }
+    
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.2);
+    }
+    
+    .header h1 {
+      font-size: 16px;
+      font-weight: 600;
+      color: white;
+    }
+    
+    .bot-avatar {
+      width: 36px;
+      height: 36px;
+      background: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      animation: bounce 2s ease-in-out infinite;
+    }
+    
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-3px); }
+    }
+    
+    /* Bot speech bubble */
+    .bot-message {
+      background: white;
+      border-radius: 18px;
+      border-top-left-radius: 4px;
+      padding: 12px 16px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      position: relative;
+      animation: fadeIn 0.3s ease-out;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .bot-message p {
+      color: #333;
+      line-height: 1.5;
+    }
+    
+    .bot-message .bot-name {
+      font-size: 11px;
+      color: #667eea;
+      font-weight: 600;
+      margin-bottom: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    /* Content card */
+    .content-card {
+      background: white;
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    
+    /* Login state */
+    .login-section {
+      text-align: center;
+      padding: 10px 0;
+    }
+    
+    .login-section p {
+      margin-bottom: 12px;
+      color: #666;
+    }
+    
+    .login-section a {
+      display: inline-block;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 12px 24px;
+      border-radius: 25px;
+      text-decoration: none;
+      font-weight: 600;
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    .login-section a:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(102, 126, 234, 0.5);
+    }
+    
+    /* Form styles */
+    .form-group {
+      margin-bottom: 14px;
+    }
+    
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 500;
+      color: #555;
+      margin-bottom: 4px;
+    }
+    
+    input, select, textarea {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 13px;
+      font-family: inherit;
+    }
+    
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+    }
+    
+    textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+    
+    .preview {
+      background: #f5f5f5;
+      padding: 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      color: #666;
+      max-height: 100px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    
+    .source-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      background: #e5e7eb;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 500;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    
+    .source-badge.chatgpt { background: #10a37f; color: white; }
+    .source-badge.claude { background: #d97706; color: white; }
+    .source-badge.gemini { background: #4285f4; color: white; }
+    .source-badge.perplexity { background: #1a1a2e; color: white; }
+    .source-badge.copilot { background: #0078d4; color: white; }
+    
+    .btn {
+      width: 100%;
+      padding: 10px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border-radius: 25px;
+      font-weight: 600;
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+    }
+    
+    .btn-primary:disabled {
+      background: #ccc;
+      box-shadow: none;
+      transform: none;
+      cursor: not-allowed;
+    }
+    
+    .btn-secondary {
+      background: rgba(255,255,255,0.9);
+      color: #667eea;
+      margin-top: 8px;
+      border-radius: 25px;
+      font-weight: 500;
+    }
+    
+    .btn-secondary:hover {
+      background: white;
+    }
+    
+    .message {
+      padding: 10px;
+      border-radius: 6px;
+      margin-bottom: 12px;
+      font-size: 13px;
+    }
+    
+    .message.success {
+      background: #d1fae5;
+      color: #065f46;
+      border-radius: 12px;
+    }
+    
+    .message.error {
+      background: #fee2e2;
+      color: #991b1b;
+      border-radius: 12px;
+    }
+    
+    .empty-state {
+      text-align: center;
+      padding: 20px;
+      color: #666;
+    }
+    
+    .empty-state p {
+      margin-bottom: 8px;
+    }
+    
+    .tip {
+      font-size: 11px;
+      color: #888;
+      margin-top: 4px;
+    }
+    
+    .new-thread-form {
+      background: #f0f4ff;
+      padding: 12px;
+      border-radius: 10px;
+      margin-top: 8px;
+      border: 1px dashed #667eea;
+    }
+    
+    .new-thread-form input {
+      margin-bottom: 8px;
+      border-radius: 8px;
+    }
+    
+    .inline-btn {
+      background: none;
+      border: none;
+      color: #3b82f6;
+      cursor: pointer;
+      font-size: 12px;
+      padding: 0;
+    }
+    
+    .inline-btn:hover {
+      text-decoration: underline;
+    }
+    
+    .footer {
+      margin-top: 16px;
+      padding-top: 12px;
+      text-align: center;
+    }
+    
+    .footer a {
+      color: rgba(255,255,255,0.8);
+      text-decoration: none;
+      font-size: 12px;
+    }
+    
+    .footer a:hover {
+      color: white;
+      text-decoration: underline;
+    }
+    
+    /* Emoji reactions */
+    .save-celebration {
+      font-size: 24px;
+      text-align: center;
+      animation: celebrate 0.5s ease-out;
+    }
+    
+    @keyframes celebrate {
+      0% { transform: scale(0); }
+      50% { transform: scale(1.3); }
+      100% { transform: scale(1); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="bot-avatar">🤖</div>
+      <h1>Memory Bot</h1>
+    </div>
+    
+    <div id="content">
+      <!-- Content loaded by JS -->
+      <div class="bot-message">
+        <div class="bot-name">Memory Bot</div>
+        <p>Loading...</p>
+      </div>
+    </div>
+    
+    <div class="footer">
+      <a href="http://localhost:3000/threads" target="_blank">📚 View All Memories →</a>
+    </div>
+  </div>
+  
+  <script src="popup.js"></script>
+</body>
+</html>
