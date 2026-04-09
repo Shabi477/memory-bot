@@ -224,3 +224,5 @@ export function ResumePromptPanel(props: ContextPackPanelProps) {
     </div>
   );
 }
+
+export default ResumePromptPanel;

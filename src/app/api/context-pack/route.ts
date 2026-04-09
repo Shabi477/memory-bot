@@ -52,7 +52,13 @@ export async function POST(request: NextRequest) {
           const aiResult = await generateAIContextPack(
             thread.title,
             thread.description,
-            moments,
+            moments as Array<{
+              source: string;
+              raw_text: string;
+              summary?: string;
+              key_points?: string[];
+              created_at: string;
+            }>,
             verbosity
           );
           contextPack = aiResult.contextPack;
