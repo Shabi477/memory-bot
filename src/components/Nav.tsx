@@ -2,15 +2,17 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 
 export function Nav() {
   const pathname = usePathname();
+  const { data: session } = useSession();
   
   const linkClass = (path: string) =>
     `px-3 py-2 rounded-md text-sm font-medium ${
       pathname === path
-        ? 'bg-gray-900 text-white'
-        : 'text-gray-700 hover:bg-gray-200'
+        ? 'bg-purple-600 text-white'
+        : 'text-gray-700 hover:bg-purple-100'
     }`;
 
   return (
@@ -18,8 +20,8 @@ export function Nav() {
       <div className="max-w-4xl mx-auto px-4">
         <div className="flex justify-between h-14">
           <div className="flex items-center space-x-4">
-            <Link href="/" className="font-bold text-lg">
-              AI Organiser
+            <Link href="/" className="font-bold text-lg flex items-center gap-2">
+              <span>🤖</span> Memory Bot
             </Link>
             <Link href="/threads" className={linkClass('/threads')}>
               Threads
@@ -32,9 +34,15 @@ export function Nav() {
             <Link href="/settings" className={linkClass('/settings')}>
               Settings
             </Link>
-            <Link href="/login" className={linkClass('/login')}>
-              Login
-            </Link>
+            {session ? (
+              <span className="text-sm text-gray-500 px-2">
+                {session.user?.email?.split('@')[0]}
+              </span>
+            ) : (
+              <Link href="/login" className={linkClass('/login')}>
+                Login
+              </Link>
+            )}
           </div>
         </div>
       </div>

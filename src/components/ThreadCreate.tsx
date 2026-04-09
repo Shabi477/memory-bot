@@ -1,15 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { supabase } from '@/lib/supabase';
 import type { Thread } from '@/lib/database.types';
 
 interface ThreadCreateProps {
-  onCreated: (newThread?: Thread) => void;
-  demoMode?: boolean;
+  onCreated: () => void;
 }
 
-export function ThreadCreate({ onCreated, demoMode = false }: ThreadCreateProps) {
+export function ThreadCreate({ onCreated }: ThreadCreateProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -23,39 +21,20 @@ export function ThreadCreate({ onCreated, demoMode = false }: ThreadCreateProps)
     setLoading(true);
     setError(null);
 
-    // In demo mode, create a local thread
-    if (demoMode) {
-      const newThread: Thread = {
-        id: `demo-${Date.now()}`,
-        user_id: 'demo-user',
-        title: title.trim(),
-        description: description.trim() || null,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
-      
-      setTitle('');
-      setDescription('');
-      setIsOpen(false);
-      setLoading(false);
-      onCreated(newThread);
-      return;
-    }
-
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        throw new Error('You must be logged in to create a thread');
-      }
-
-      const { error: insertError } = await supabase.from('threads').insert({
-        user_id: user.id,
-        title: title.trim(),
-        description: description.trim() || null,
+      const res = await fetch('/api/threads', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: title.trim(),
+          description: description.trim() || null,
+        }),
       });
 
-      if (insertError) throw insertError;
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to create thread');
+      }
 
       setTitle('');
       setDescription('');
@@ -72,7 +51,7 @@ export function ThreadCreate({ onCreated, demoMode = false }: ThreadCreateProps)
     return (
       <button
         onClick={() => setIsOpen(true)}
-        className="w-full py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-blue-400 hover:text-blue-600 transition-colors"
+        className="w-full py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-purple-400 hover:text-purple-600 transition-colors"
       >
         + Create New Thread
       </button>
@@ -123,7 +102,7 @@ export function ThreadCreate({ onCreated, demoMode = false }: ThreadCreateProps)
           <button
             type="submit"
             disabled={loading || !title.trim()}
-            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50"
+            className="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 disabled:opacity-50"
           >
             {loading ? 'Creating...' : 'Create Thread'}
           </button>

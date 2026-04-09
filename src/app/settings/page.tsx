@@ -1,41 +1,16 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
-import { DEMO_MODE } from '@/lib/demo-data';
-
-// Demo token for testing the Chrome extension locally
-const DEMO_TOKEN = 'demo_token_for_local_testing_only';
+import { useSession, signOut } from 'next-auth/react';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function SettingsPage() {
-  const [token, setToken] = useState<string | null>(null);
+  const { data: session, status } = useSession();
+  const router = useRouter();
   const [copied, setCopied] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<any>(null);
 
-  useEffect(() => {
-    const getSession = async () => {
-      // Always check for real session first
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (session) {
-        // Real user logged in - use real token
-        setToken(session.access_token);
-        setUser(session.user);
-        setLoading(false);
-        return;
-      }
-      
-      // No real session - fall back to demo mode if enabled
-      if (DEMO_MODE) {
-        setToken(DEMO_TOKEN);
-        setUser({ email: 'demo@example.com' });
-      }
-      
-      setLoading(false);
-    };
-    getSession();
-  }, []);
+  // The user's ID is their token for the Chrome extension
+  const token = session?.user?.id;
 
   const handleCopy = async () => {
     if (token) {
@@ -46,12 +21,17 @@ export default function SettingsPage() {
   };
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    window.location.href = '/login';
+    await signOut({ redirect: false });
+    router.push('/login');
   };
 
-  if (loading) {
+  if (status === 'loading') {
     return <div className="text-center py-8">Loading...</div>;
+  }
+
+  if (status === 'unauthenticated') {
+    router.push('/login');
+    return null;
   }
 
   return (
@@ -62,38 +42,24 @@ export default function SettingsPage() {
       <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
         <h2 className="text-lg font-semibold mb-4">Account</h2>
         
-        {user ? (
-          <div>
-            <p className="text-gray-600 mb-4">
-              Signed in as: <strong>{user.email}</strong>
-            </p>
-            <button
-              onClick={handleSignOut}
-              className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700"
-            >
-              Sign Out
-            </button>
-          </div>
-        ) : (
-          <div>
-            <p className="text-gray-600 mb-4">
-              {DEMO_MODE ? 'Running in demo mode.' : 'Not signed in.'}
-            </p>
-            <a
-              href="/login"
-              className="inline-block bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
-            >
-              Sign In
-            </a>
-          </div>
-        )}
+        <div>
+          <p className="text-gray-600 mb-4">
+            Signed in as: <strong>{session?.user?.email}</strong>
+          </p>
+          <button
+            onClick={handleSignOut}
+            className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700"
+          >
+            Sign Out
+          </button>
+        </div>
       </div>
 
       {/* Chrome Extension Section */}
       <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
-        <h2 className="text-lg font-semibold mb-2">Chrome Extension</h2>
+        <h2 className="text-lg font-semibold mb-2">🤖 Chrome Extension</h2>
         <p className="text-gray-600 text-sm mb-4">
-          Connect the Chrome extension to save moments from any AI chat.
+          Connect the Memory Bot extension to save moments from any AI chat.
         </p>
 
         {token ? (
@@ -111,9 +77,9 @@ export default function SettingsPage() {
               />
               <button
                 onClick={handleCopy}
-                className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 whitespace-nowrap"
+                className="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 whitespace-nowrap"
               >
-                {copied ? 'Copied!' : 'Copy'}
+                {copied ? '✓ Copied!' : 'Copy'}
               </button>
             </div>
             <p className="text-xs text-gray-500 mt-2">
@@ -125,7 +91,7 @@ export default function SettingsPage() {
           </div>
         ) : (
           <p className="text-gray-500 text-sm">
-            Sign in to get your auth token for the Chrome extension.
+            Loading your token...
           </p>
         )}
       </div>
@@ -135,11 +101,11 @@ export default function SettingsPage() {
         <h2 className="text-lg font-semibold mb-2">Install Extension</h2>
         <ol className="list-decimal list-inside text-sm text-gray-600 space-y-2">
           <li>Open Chrome and go to <code className="bg-gray-100 px-1 rounded">chrome://extensions</code></li>
-          <li>Enable "Developer mode" (toggle in top right)</li>
-          <li>Click "Load unpacked"</li>
+          <li>Enable &quot;Developer mode&quot; (toggle in top right)</li>
+          <li>Click &quot;Load unpacked&quot;</li>
           <li>Select the <code className="bg-gray-100 px-1 rounded">chrome-extension</code> folder from this project</li>
           <li>Click the extension icon and paste your auth token</li>
-          <li>Select text on any AI chat and right-click → "Save to AI Organiser"</li>
+          <li>Select text on any AI chat and right-click → &quot;Save to Memory Bot&quot;</li>
         </ol>
       </div>
     </div>

@@ -1,15 +1,16 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+import { useParams, useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { MomentCard } from '@/components/MomentCard';
 import { ResumePromptPanel } from '@/components/ResumePromptPanel';
 import type { Thread, Moment } from '@/lib/database.types';
-import { DEMO_MODE, DEMO_THREADS, DEMO_MOMENTS } from '@/lib/demo-data';
 
 export default function ThreadDetailPage() {
   const params = useParams();
+  const router = useRouter();
+  const { status } = useSession();
   const threadId = params.id as string;
   
   const [thread, setThread] = useState<Thread | null>(null);
@@ -17,76 +18,37 @@ export default function ThreadDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showResumePanel, setShowResumePanel] = useState(false);
-  const [isDemoMode, setIsDemoMode] = useState(false);
 
   useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/login');
+      return;
+    }
+
+    if (status !== 'authenticated') return;
+
     const fetchData = async () => {
-      // Check for demo thread
-      if (DEMO_MODE && threadId.startsWith('demo-')) {
-        const demoThread = DEMO_THREADS.find(t => t.id === threadId);
-        const demoMoments = DEMO_MOMENTS.filter(m => m.thread_id === threadId);
-        if (demoThread) {
-          setThread(demoThread as Thread);
-          setMoments(demoMoments as Moment[]);
-          setIsDemoMode(true);
-          setLoading(false);
-          return;
-        }
-      }
-
       try {
-        const { data: { user } } = await supabase.auth.getUser();
+        // Fetch threads to find this one
+        const threadsRes = await fetch('/api/threads');
+        if (!threadsRes.ok) throw new Error('Failed to fetch threads');
+        const threadsData = await threadsRes.json();
         
-        if (!user) {
-          // Try demo mode
-          if (DEMO_MODE) {
-            const demoThread = DEMO_THREADS.find(t => t.id === threadId);
-            if (demoThread) {
-              setThread(demoThread as Thread);
-              setMoments(DEMO_MOMENTS.filter(m => m.thread_id === threadId) as Moment[]);
-              setIsDemoMode(true);
-              setLoading(false);
-              return;
-            }
-          }
-          setError('Please log in to view this thread');
+        const foundThread = threadsData.threads?.find((t: Thread) => t.id === threadId);
+        if (!foundThread) {
+          setError('Thread not found');
           setLoading(false);
           return;
         }
-
-        // Fetch thread
-        const { data: threadData, error: threadError } = await supabase
-          .from('threads')
-          .select('*')
-          .eq('id', threadId)
-          .eq('user_id', user.id)
-          .single();
-
-        if (threadError) throw threadError;
-        setThread(threadData);
+        setThread(foundThread);
 
         // Fetch moments for this thread
-        const { data: momentsData, error: momentsError } = await supabase
-          .from('moments')
-          .select('*')
-          .eq('thread_id', threadId)
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: true });
-
-        if (momentsError) throw momentsError;
-        setMoments(momentsData || []);
-      } catch (err: any) {
-        // Try demo fallback
-        if (DEMO_MODE) {
-          const demoThread = DEMO_THREADS.find(t => t.id === threadId);
-          if (demoThread) {
-            setThread(demoThread as Thread);
-            setMoments(DEMO_MOMENTS.filter(m => m.thread_id === threadId) as Moment[]);
-            setIsDemoMode(true);
-            setLoading(false);
-            return;
-          }
+        const momentsRes = await fetch(`/api/moments?threadId=${threadId}`);
+        if (momentsRes.ok) {
+          const momentsData = await momentsRes.json();
+          setMoments(momentsData.moments || []);
         }
+      } catch (err: any) {
         setError(err.message);
       } finally {
         setLoading(false);
@@ -94,17 +56,17 @@ export default function ThreadDetailPage() {
     };
 
     fetchData();
-  }, [threadId]);
+  }, [threadId, status, router]);
 
-  if (loading) {
-    return <div className="text-center py-8">Loading thread...</div>;
+  if (status === 'loading' || loading) {
+    return <div className="text-center py-8">Loading...</div>;
   }
 
   if (error || !thread) {
     return (
       <div className="text-center py-8">
         <p className="text-red-600 mb-4">{error || 'Thread not found'}</p>
-        <a href="/threads" className="text-blue-600 hover:underline">
+        <a href="/threads" className="text-purple-600 hover:underline">
           Back to Threads
         </a>
       </div>
@@ -113,15 +75,9 @@ export default function ThreadDetailPage() {
 
   return (
     <div>
-      {isDemoMode && (
-        <div className="bg-yellow-100 border border-yellow-400 text-yellow-800 px-4 py-2 rounded mb-4 text-sm">
-          🎭 <strong>Demo Mode</strong> - Viewing sample data.
-        </div>
-      )}
-
       {/* Thread Header */}
       <div className="mb-6">
-        <a href="/threads" className="text-blue-600 hover:underline text-sm">
+        <a href="/threads" className="text-purple-600 hover:underline text-sm">
           ← Back to Threads
         </a>
         <h1 className="text-2xl font-bold mt-2">{thread.title}</h1>
@@ -139,7 +95,7 @@ export default function ThreadDetailPage() {
           onClick={() => setShowResumePanel(!showResumePanel)}
           className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700"
         >
-          {showResumePanel ? 'Hide Resume Prompt' : 'Generate Resume Prompt'}
+          {showResumePanel ? 'Hide Resume Prompt' : '🚀 Generate Resume Prompt'}
         </button>
       </div>
 
@@ -158,7 +114,7 @@ export default function ThreadDetailPage() {
           <div className="text-center py-8 bg-gray-100 rounded-lg">
             <p className="text-gray-600">No moments saved yet.</p>
             <p className="text-sm text-gray-500 mt-2">
-              Use the Chrome extension to save moments from ChatGPT.
+              Use the Chrome extension to save moments from any AI chat.
             </p>
           </div>
         ) : (
