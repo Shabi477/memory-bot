@@ -191,16 +191,17 @@ export default function SettingsPage() {
 }
 
 function UsageBar({ label, used, limit }: { label: string; used: number; limit: number }) {
-  const percentage = limit === Infinity ? 0 : Math.min((used / limit) * 100, 100);
-  const isNearLimit = percentage >= 80;
-  const isAtLimit = percentage >= 100;
+  const isUnlimited = limit < 0;
+  const percentage = isUnlimited ? 0 : Math.min((used / limit) * 100, 100);
+  const isNearLimit = !isUnlimited && percentage >= 80;
+  const isAtLimit = !isUnlimited && percentage >= 100;
 
   return (
     <div>
       <div className="flex justify-between text-sm mb-1">
         <span className="text-gray-600">{label}</span>
         <span className={isAtLimit ? 'text-red-600 font-medium' : 'text-gray-500'}>
-          {used} / {limit === Infinity ? '∞' : limit}
+          {used} / {limit < 0 ? '∞' : limit}
         </span>
       </div>
       <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
@@ -212,7 +213,7 @@ function UsageBar({ label, used, limit }: { label: string; used: number; limit: 
               ? 'bg-yellow-500'
               : 'bg-purple-500'
           }`}
-          style={{ width: limit === Infinity ? '100%' : `${percentage}%` }}
+          style={{ width: limit < 0 ? '100%' : `${percentage}%` }}
         />
       </div>
     </div>

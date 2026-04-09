@@ -1,6 +1,6 @@
 import { sql } from '@/lib/db';
 
-// Freemium tier limits
+// Freemium tier limits (use -1 for unlimited, which serializes properly to JSON)
 export const LIMITS = {
   free: {
     projects: 1,
@@ -9,12 +9,17 @@ export const LIMITS = {
     contextPacks: 5, // per month
   },
   pro: {
-    projects: Infinity,
-    threads: Infinity,
-    moments: Infinity,
-    contextPacks: Infinity,
+    projects: -1, // -1 means unlimited
+    threads: -1,
+    moments: -1,
+    contextPacks: -1,
   },
 };
+
+// Helper to check if limit is unlimited
+export function isUnlimited(limit: number): boolean {
+  return limit < 0;
+}
 
 export type Tier = 'free' | 'pro';
 
@@ -76,9 +81,9 @@ export async function getUsageStats(userId: string): Promise<UsageStats> {
     projects: { used: projectsUsed, limit: limits.projects },
     threads: { used: threadsUsed, limit: limits.threads },
     moments: { used: momentsUsed, limit: limits.moments },
-    canCreateProject: projectsUsed < limits.projects,
-    canCreateThread: threadsUsed < limits.threads,
-    canCreateMoment: momentsUsed < limits.moments,
+    canCreateProject: isUnlimited(limits.projects) || projectsUsed < limits.projects,
+    canCreateThread: isUnlimited(limits.threads) || threadsUsed < limits.threads,
+    canCreateMoment: isUnlimited(limits.moments) || momentsUsed < limits.moments,
   };
 }
 

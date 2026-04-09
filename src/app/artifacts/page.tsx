@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Nav from '@/components/Nav';
 
 interface Artifact {
   id: string;
@@ -142,27 +141,20 @@ export default function ArtifactsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-        <Nav />
-        <div className="max-w-6xl mx-auto px-4 py-8">
-          <div className="animate-pulse">
-            <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-1/4 mb-6"></div>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {[1, 2, 3, 4, 5, 6].map((i) => (
-                <div key={i} className="h-32 bg-gray-200 dark:bg-gray-700 rounded-xl"></div>
-              ))}
-            </div>
-          </div>
+      <div className="animate-pulse">
+        <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-1/4 mb-6"></div>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div key={i} className="h-32 bg-gray-200 dark:bg-gray-700 rounded-xl"></div>
+          ))}
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <Nav />
-      <div className="max-w-6xl mx-auto px-4 py-8">
-        {/* Header */}
+    <div>
+      {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Artifacts</h1>
@@ -460,7 +452,6 @@ export default function ArtifactsPage() {
             </div>
           </div>
         )}
-      </div>
     </div>
   );
 }

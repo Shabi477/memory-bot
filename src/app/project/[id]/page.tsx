@@ -2,7 +2,6 @@
 
 import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
-import Nav from '@/components/Nav';
 import ResumePromptPanel from '@/components/ResumePromptPanel';
 
 interface Project {
@@ -233,18 +232,13 @@ export default function ProjectDetailPage({
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-        <Nav />
-        <div className="max-w-4xl mx-auto px-4 py-8">
-          <div className="animate-pulse">
-            <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-1/3 mb-4"></div>
-            <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-2/3 mb-8"></div>
-            <div className="space-y-4">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="h-24 bg-gray-200 dark:bg-gray-700 rounded-xl"></div>
-              ))}
-            </div>
-          </div>
+      <div className="animate-pulse">
+        <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-1/3 mb-4"></div>
+        <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-2/3 mb-8"></div>
+        <div className="space-y-4">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-24 bg-gray-200 dark:bg-gray-700 rounded-xl"></div>
+          ))}
         </div>
       </div>
     );
@@ -252,20 +246,15 @@ export default function ProjectDetailPage({
 
   if (!project) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-        <Nav />
-        <div className="max-w-4xl mx-auto px-4 py-8 text-center">
-          <p className="text-gray-500">Project not found</p>
-        </div>
+      <div className="text-center py-8">
+        <p className="text-gray-500">Project not found</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <Nav />
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        {/* Breadcrumb */}
+    <div>
+      {/* Breadcrumb */}
         <button
           onClick={() => router.push('/projects')}
           className="text-sm text-indigo-600 dark:text-indigo-400 hover:underline mb-4 flex items-center gap-1"
@@ -497,7 +486,6 @@ export default function ProjectDetailPage({
             </div>
           </div>
         )}
-      </div>
     </div>
   );
 }

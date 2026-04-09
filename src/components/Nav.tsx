@@ -4,9 +4,17 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 
+// Admin email addresses - must match the API
+const ADMIN_EMAILS = [
+  'sharon.onyango@gmail.com',
+  'admin@threadmind.app',
+];
+
 export function Nav() {
   const pathname = usePathname();
   const { data: session } = useSession();
+  
+  const isAdmin = session?.user?.email && ADMIN_EMAILS.includes(session.user.email.toLowerCase());
   
   const linkClass = (path: string) =>
     `px-3 py-2 rounded-md text-sm font-medium ${
@@ -40,6 +48,11 @@ export function Nav() {
             </Link>
           </div>
           <div className="flex items-center space-x-2">
+            {isAdmin && (
+              <Link href="/admin" className={linkClass('/admin')}>
+                🔧 Admin
+              </Link>
+            )}
             <Link href="/settings" className={linkClass('/settings')}>
               Settings
             </Link>
