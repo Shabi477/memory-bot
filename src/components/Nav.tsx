@@ -46,6 +46,9 @@ export function Nav() {
             <Link href="/search" className={linkClass('/search')}>
               Search
             </Link>
+            <Link href="/extension" className={linkClass('/extension')}>
+              📥 Extension
+            </Link>
           </div>
           <div className="flex items-center space-x-2">
             {isAdmin && (
